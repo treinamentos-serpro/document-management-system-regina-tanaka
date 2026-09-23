@@ -6,10 +6,10 @@ class DocumentsController {
     this.download = this.download.bind(this);
   }
 
-  upload(req, res, next) {
+  async upload(req, res, next) {
     try {
       const owner = this.getOwner(req);
-      const document = this.service.createDocument({ file: req.file, owner });
+      const document = await this.service.createDocument({ file: req.file, owner });
       res.status(201).json(this.service.toPublicDocument(document));
     } catch (error) {
       next(error);
@@ -25,10 +25,10 @@ class DocumentsController {
     }
   }
 
-  download(req, res, next) {
+  async download(req, res, next) {
     try {
       const owner = this.getOwner(req);
-      const document = this.service.getDownload(req.params.id, owner);
+      const document = await this.service.getDownload(req.params.id, owner);
 
       res.download(document.filePath, document.originalName, (error) => {
         if (error && !res.headersSent) {
@@ -43,8 +43,8 @@ class DocumentsController {
   getOwner(req) {
     const owner = req.get('X-User-Id');
 
-    if (!owner || owner.trim() === '') {
-      const error = new Error('Identificador do usuário é obrigatório.');
+    if (!owner || !/^[a-zA-Z0-9._:-]{1,100}$/.test(owner.trim())) {
+      const error = new Error('Identificador do usuário é obrigatório e inválido.');
       error.code = 'MISSING_USER';
       error.statusCode = 400;
       throw error;

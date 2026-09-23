@@ -1,8 +1,10 @@
 const fs = require('node:fs/promises');
+const path = require('node:path');
 
 class DocumentsRepository {
-  constructor() {
+  constructor(storageDirectory) {
     this.documents = new Map();
+    this.storageDirectory = path.resolve(storageDirectory);
   }
 
   save(document) {
@@ -22,6 +24,21 @@ class DocumentsRepository {
 
   async removeFile(filePath) {
     await fs.rm(filePath, { force: true });
+  }
+
+  async isAvailable(filePath) {
+    const relativePath = path.relative(this.storageDirectory, path.resolve(filePath));
+
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      return false;
+    }
+
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

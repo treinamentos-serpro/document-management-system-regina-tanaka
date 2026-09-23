@@ -5,7 +5,7 @@ class DocumentsService {
     this.repository = repository;
   }
 
-  createDocument({ file, owner }) {
+  async createDocument({ file, owner }) {
     if (!file) {
       throw this.createError('MISSING_FILE', 'Arquivo não enviado.', 400);
     }
@@ -31,10 +31,10 @@ class DocumentsService {
     return this.repository.findByOwner(owner).map((document) => this.toPublicDocument(document));
   }
 
-  getDownload(id, owner) {
+  async getDownload(id, owner) {
     const document = this.repository.findById(id);
 
-    if (!document || document.owner !== owner) {
+    if (!document || document.owner !== owner || !(await this.repository.isAvailable(document.filePath))) {
       throw this.createError('DOCUMENT_NOT_FOUND', 'Documento não encontrado.', 404);
     }
 
@@ -51,8 +51,8 @@ class DocumentsService {
     };
   }
 
-  removeOrphanAndThrow(filePath, error) {
-    this.repository.removeFile(filePath).catch(() => {});
+  async removeOrphanAndThrow(filePath, error) {
+    await this.repository.removeFile(filePath).catch(() => {});
     throw this.createError('UPLOAD_FAILED', 'Não foi possível salvar o documento.', 500, error);
   }
 

@@ -10,21 +10,26 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadDocuments = useCallback(async () => {
+  const loadDocuments = useCallback(async (signal) => {
+    if (signal?.aborted) return;
+
     setIsLoading(true);
     setError('');
 
     try {
-      setDocuments(await listDocuments(userId));
+      setDocuments(await listDocuments(userId, signal));
     } catch (loadError) {
+      if (loadError.name === 'AbortError') return;
       setError(loadError.message);
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [userId]);
 
   useEffect(() => {
-    loadDocuments();
+    const controller = new AbortController();
+    loadDocuments(controller.signal);
+    return () => controller.abort();
   }, [loadDocuments]);
 
   async function handleUpload(file) {
@@ -61,7 +66,7 @@ export default function App() {
           documents={documents}
           isLoading={isLoading}
           error={error}
-          onRefresh={loadDocuments}
+          onRefresh={() => loadDocuments()}
           onDownload={handleDownload}
         />
       </div>

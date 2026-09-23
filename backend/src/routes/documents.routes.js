@@ -7,7 +7,7 @@ const DocumentsRepository = require('../repositories/documents.repository');
 const DocumentsService = require('../services/documents.service');
 const DocumentsController = require('../controllers/documents.controller');
 
-const storageDirectory = process.env.STORAGE_DIR || path.resolve(__dirname, '../../storage');
+const storageDirectory = path.resolve(process.env.STORAGE_DIR || path.resolve(__dirname, '../../storage'));
 fs.mkdirSync(storageDirectory, { recursive: true });
 
 const allowedMimeTypes = (process.env.ALLOWED_MIME_TYPES || '')
@@ -37,13 +37,26 @@ const upload = multer({
   },
 });
 
-const repository = new DocumentsRepository();
+const repository = new DocumentsRepository(storageDirectory);
 const service = new DocumentsService(repository);
 const controller = new DocumentsController(service);
 const router = express.Router();
 
-router.post('/upload', upload.single('file'), controller.upload);
-router.get('/documents', controller.list);
-router.get('/documents/:id/download', controller.download);
+function requireUser(req, _res, next) {
+  const owner = req.get('X-User-Id');
+
+  if (!owner || !/^[a-zA-Z0-9._:-]{1,100}$/.test(owner.trim())) {
+    const error = new Error('Identificador do usuário é obrigatório e inválido.');
+    error.code = 'MISSING_USER';
+    error.statusCode = 400;
+    return next(error);
+  }
+
+  return next();
+}
+
+router.post('/upload', requireUser, upload.single('file'), controller.upload);
+router.get('/documents', requireUser, controller.list);
+router.get('/documents/:id/download', requireUser, controller.download);
 
 module.exports = router;

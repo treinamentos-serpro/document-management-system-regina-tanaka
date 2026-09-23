@@ -14,6 +14,8 @@ export default function DownloadButton({ document, onDownload }) {
       link.download = fileName || document.originalName;
       link.click();
       URL.revokeObjectURL(url);
+    } catch {
+      return;
     } finally {
       setIsDownloading(false);
     }

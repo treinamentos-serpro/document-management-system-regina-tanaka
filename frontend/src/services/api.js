@@ -19,9 +19,10 @@ async function parseResponse(response) {
   throw error;
 }
 
-export async function listDocuments(userId) {
+export async function listDocuments(userId, signal) {
   const response = await fetch(`${API_PREFIX}/documents`, {
     headers: { 'X-User-Id': userId },
+    signal,
   });
 
   await parseResponse(response);
